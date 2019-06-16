@@ -3,37 +3,84 @@
 
 void CNNLayers::PassFunc(CNN_matrix &source, CNN_matrix &core, CNN_matrix &res, activation_func act_func)
 {
- 
+
 }
 
 void CNNLayers::ValidPass(CNN_matrix & source, CNN_matrix & core, CNN_matrix & res, activation_func act_func)
 {
-  size_t s_i = 0;
-  size_t s_j = 0;
-  size_t w_j = 0;
-  size_t w_i = 0;
-
+  size_t core_offset = (core.width - 1) / 2;
+  size_t source_w = 0;
+  size_t source_h = 0;
+  size_t source_s = 0;
+  size_t source_off = 0;
   for (size_t g = 0; g < res.matx.size(); ++g)
   {
-    s_i = w_j;
-    s_j = w_i;
+    size_t core_h = 0;
+    size_t core_w = 0;
+    source_off = (source_off + core_offset > res.width) ? 0 : (g != 0 ? source_off + 1 : 0);
+    source_w = source_off;
+    source_s = (g % res.width == 0 && g != 0) ? source_s + 1 : source_s;
+    source_h = source_s;
     for (size_t i = 0; i < core.matx.size(); ++i)
     {
-      if (i != 0 && i % core.width == 0)
+      res.matx[g] += source.matx[(source_h * source.width) + source_w] * core.matx[(core_h * core.width) + core_w];
+      core_w++;
+      source_w++;
+      if (core_w == core.width)
       {
-        s_j++;
-        s_i = w_j;
+        core_h++;
+        source_h++;
+        source_w = source_off;
+        core_w = 0;
       }
-      res.matx[g] += source.matx[(s_j * source.width) + s_i] * core.matx[i];
-      s_i++;
     }
-    w_j++;
-    if (w_j > core.width)
+    if (act_func != nullptr)
+      res.matx[g] = act_func(res.matx[g], 0.05);
+  }
+}
+
+void CNNLayers::SamePass(CNN_matrix & source, CNN_matrix & core, CNN_matrix & res, activation_func act_func)
+{
+  size_t offset = (core.width - 1) / 2;
+  CNN_matrix tmp;
+  tmp.width = source.width + (offset * 2);
+  tmp.matx.resize(source.matx.size() + ((tmp.width * offset) * 2) + ((source.matx.size() / source.width) * offset * 2));
+  size_t j = 0;
+  size_t k = 0;
+  for (size_t i = 0; i < tmp.matx.size(); ++i)
+  {
+    if (j >= tmp.width) 
+    { 
+      j = 0;
+    }
+    if ((i < tmp.width * offset) || (i > tmp.matx.size() - tmp.width * offset))
     {
-      w_j = 0;
-      w_i++;
+      tmp.matx[i] = 0;
+      continue;
+    }
+    if ((j < offset) || (j >= tmp.width - offset))
+    {
+      tmp.matx[i] = 0;
+      j++;
+      continue;
+    }
+
+    tmp.matx[i] = source.matx[k];
+    k++;
+    j++;
+  }
+  j = 0;
+  for (size_t i = 0; i < tmp.matx.size(); ++i)
+  {
+    j++;
+    std::cout << tmp.matx[i] << " ";
+    if (j == tmp.width) {
+      j = 0;
+      std::cout << std::endl;
     }
   }
+
+  ValidPass(tmp, core, res, act_func);
 }
 
 CNNLayers::CNNLayers()
@@ -65,8 +112,8 @@ void CNNLayers::Test()
   t.matx.resize(100);
   t.width = 10;
   CNN_matrix res;
-  res.width = 6;
-  res.matx.resize(36);
+  res.width = 10;
+  res.matx.resize(100);
   CNN_matrix core;
   core.width = 5;
   core.matx.resize(25);
@@ -89,16 +136,18 @@ void CNNLayers::Test()
   }
   cout << endl << endl;
   
-  ValidPass(t, core, res, nullptr);
-
+  SamePass(t, core, res, nullptr);
+  cout << endl << endl;
   j = 0;
   for (size_t i = 0; i < res.matx.size(); ++i)
   {
-    if (i != 0 && i % res.width == 0)
+    
+    if (j == res.width)
     {
-      j++;
+      j = 0;
       cout << endl;
     }
+    j++;
     cout << res.matx[i] << " ";
   }
   cout << endl << endl;

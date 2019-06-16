@@ -41,6 +41,7 @@ protected:
   CNN_init_struct dimensions;
   void PassFunc(CNN_matrix &source, CNN_matrix &core, CNN_matrix &res, activation_func act_func);
   void ValidPass(CNN_matrix &source, CNN_matrix &core, CNN_matrix &res, activation_func act_func);
+  void SamePass(CNN_matrix &source, CNN_matrix &core, CNN_matrix &res, activation_func act_func);
 public:
   CNNLayers();
   void InitCNN(CNN_init_struct &t);
